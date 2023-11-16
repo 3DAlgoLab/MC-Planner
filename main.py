@@ -2,26 +2,23 @@
 @zihao:  
 """
 
+import json
+import os
+import random
+import time
+import warnings
+from datetime import datetime
+from typing import Dict, List, Tuple
+
+import cv2
+from mineclip import MineCLIP
+from omegaconf import OmegaConf
+from PIL import Image, ImageDraw
+from transformers import CLIPModel, CLIPProcessor
+
 from controller import *
 from planner import *
 from selector import *
-
-from mineclip import MineCLIP
-from transformers import CLIPProcessor, CLIPModel
-from omegaconf import OmegaConf
-
-import os
-import json
-import random
-from datetime import datetime
-import time
-
-from typing import List, Dict, Tuple
-
-from PIL import Image, ImageDraw
-import cv2
-
-import warnings
 
 warnings.filterwarnings("ignore")
 
@@ -84,7 +81,7 @@ class Evaluator:
             "[Progress] [red]Computing goal embeddings using MineClip's text encoder..."
         )
         rely_goals = [val for val in self.goal_mapping_dct.values()]
-        self.embedding_dict = accquire_goal_embeddings(
+        self.embedding_dict = acquire_goal_embeddings(
             cfg["pretrains"]["clip_path"], rely_goals
         )
 
@@ -217,7 +214,8 @@ class Evaluator:
 
         # target_item = self.mapping_goal[goal]
         print(f"[INFO]: Evaluating the task is ", self.task)
-
+        video_frames = None
+        goal_frames = None
         if self.record_frames:
             video_frames = [obs["rgb"]]
             goal_frames = ["start"]
@@ -305,6 +303,7 @@ class Evaluator:
             json.dump(self.logs, f, indent=4)
 
         # max_ep_len = task_eps[self.task]
+        t = 0
         for t in range(0, self.max_ep_len):
             time.sleep(1 / fps)
 
@@ -333,7 +332,8 @@ class Evaluator:
                 end, min(max(end - sf * (wl - 1) - 1, seek_point - 1), end - 1), -sf
             ).flip(0)
 
-            # DONE: change the craft agent into craft actions
+            # DONE: change the craft agent into craft actionsc
+            curr_actions = None
             if curr_goal_type in ["craft", "smelt"]:
                 action_done = False
                 preconditions = self.curr_goal["precondition"].keys()

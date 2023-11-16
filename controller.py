@@ -1,37 +1,38 @@
-import cv2
-import os
-import time
-import gym
-import numpy as np
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-import wandb
 import argparse
 import multiprocessing as mp
-import hydra
+import os
 import pickle
 import random
 import sys
+import time
 from copy import deepcopy
-from functools import partial
-import torch
-import torch.nn.functional as F
-from torch.utils.data.dataloader import DataLoader
-from torch.utils.data import Dataset
-import torch.distributed as dist
 from datetime import datetime
-from hydra.utils import get_original_cwd, to_absolute_path
-from pathlib import Path
-from rich import print
-from tqdm import tqdm
 from functools import partial
-import minedojo
-from minedojo.sim.mc_meta import mc as MC
-from typing import List, Dict, Tuple
 from itertools import chain
-from ray.rllib.models.torch.torch_action_dist import TorchMultiCategorical
+from pathlib import Path
+from typing import Dict, List, Tuple
+
+import cv2
+import gym
+import hydra
+import matplotlib.pyplot as plt
+import minedojo
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import torch
+import torch.distributed as dist
+import torch.nn.functional as F
+import wandb
+from hydra.utils import get_original_cwd, to_absolute_path
 from minedojo.minedojo_wrapper import MineDojoEnv
+from minedojo.sim.mc_meta import mc as MC
+from ray.rllib.models.torch.torch_action_dist import TorchMultiCategorical
+from rich import print
+from torch.utils.data import Dataset
+from torch.utils.data.dataloader import DataLoader
+from tqdm import tqdm
+
 from src.models.simple import SimpleNetwork
 from src.utils.vision import create_backbone, resize_image
 
@@ -282,7 +283,7 @@ def making_exp_name(cfg):
 from src.mineclip_lib.mineclip_model import MineCLIP
 
 
-def accquire_goal_embeddings(clip_path, goal_list, device="cuda"):
+def acquire_goal_embeddings(clip_path, goal_list, device="cuda"):
     clip_cfg = {
         "arch": "vit_base_p16_fz.v2.t2",
         "hidden_dim": 512,
@@ -330,6 +331,7 @@ class MineAgentWrapper:
                     act[5] = 3
                     return self.max_ranking, act
             elif goal in ["iron_ore", "diamond"]:
+                depth = None
                 if goal == "iron_ore":
                     depth = 30
                 elif goal == "diamond":
@@ -381,7 +383,7 @@ class MineAgent:
         print(
             "[Progress] [red]Computing goal embeddings using MineClip's text encoder..."
         )
-        self.embedding_dict = accquire_goal_embeddings(
+        self.embedding_dict = acquire_goal_embeddings(
             cfg["pretrains"]["clip_path"], cfg["data"]["filters"]
         )
 
