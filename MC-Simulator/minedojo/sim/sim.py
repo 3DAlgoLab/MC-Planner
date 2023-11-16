@@ -480,7 +480,7 @@ class MineDojoSim(gym.Env):
             action: An action that will be simultaneously executed with the spawning
         Return:
             A tuple (obs, reward, done, info)
-            - ``dict`` - Agent’s observation of the current environment.
+            - ``dict`` - Agent's observation of the current environment.
             - ``float`` - Amount of reward returned after previous action.
             - ``bool`` - Whether the episode has ended.
             - ``dict`` - Contains auxiliary diagnostic information (helpful for debugging, and sometimes learning).

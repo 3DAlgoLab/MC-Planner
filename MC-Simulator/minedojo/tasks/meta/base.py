@@ -1,22 +1,21 @@
 from __future__ import annotations
 
+import sys
 from copy import deepcopy
-from typing import List, Dict, Any, Union, Tuple, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import gym
 import numpy as np
-import sys
 
 from ...sim import MineDojoSim
 from ...sim.wrappers import FastResetWrapper
 from .utils import (
-    check_success_base,
-    reward_fn_base,
-    extra_spawn_condition_base,
-    always_satisfy_condition,
     accomplishment_fn_base,
+    always_satisfy_condition,
+    check_success_base,
+    extra_spawn_condition_base,
+    reward_fn_base,
 )
-
 
 __all__ = ["MetaTaskBase", "ExtraSpawnMetaTaskBase"]
 
@@ -68,11 +67,16 @@ class MetaTaskBase(gym.Wrapper):
     ):
         sim = MineDojoSim(**kwargs)
         self._fast_reset = fast_reset
+
         if fast_reset:
+            is_random_teleport_agent = False
+            if fast_reset_random_teleport_range is not None:
+                is_random_teleport_agent = fast_reset_random_teleport_range > 0
+
             sim = FastResetWrapper(
                 sim,
                 random_teleport_range=fast_reset_random_teleport_range,
-                random_teleport_agent=(fast_reset_random_teleport_range > 0),
+                random_teleport_agent=is_random_teleport_agent,
                 no_daylight_cycle=no_daylight_cycle,
                 custom_commands=custom_commands,
                 force_slow_reset_interval=force_slow_reset_interval,
@@ -347,7 +351,7 @@ class ExtraSpawnMetaTaskBase(MetaTaskBase):
         fast_reset_random_teleport_range: Optional[int] = None,
         success_criteria: List[check_success_base],
         reward_fns: List[reward_fn_base],
-        accomplishment_fns: List[accomplishment_fn_base],
+        accomplishment_fns: List[accomplishment_fn_base] = None,
         need_all_success: Optional[bool] = None,
         custom_commands: Optional[List] = None,
         **kwargs,
@@ -482,20 +486,23 @@ class ExtraSpawnMetaTaskBase(MetaTaskBase):
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         obs, info = reset_obs, reset_info
         m = None
+        mobs_rel_positions = None
         if len(self._initial_mobs) > 0:
             if not self._random_shuffle_spawn_range:
-                mobs_rel_positions = self._mob_spawn_range_spaces[0].sample()
+                if hasattr(self, "_mob_spawn_range_spaces"):
+                    mobs_rel_positions = self._mob_spawn_range_spaces[0].sample()
             else:
                 mobs_rel_positions = np.zeros([len(self._initial_mobs), 3])
                 m = np.random.permutation(len(self._initial_mobs))
                 for i in range(len(self._initial_mobs)):
-                    mobs_rel_positions[i, :] = self._mob_spawn_range_spaces[
-                        m[i]
-                    ].sample()[0, :]
-
-            obs, _, _, info = self.env.spawn_mobs(
-                self._initial_mobs, mobs_rel_positions
-            )
+                    if hasattr(self, "_mob_spawn_range_spaces"):
+                        mobs_rel_positions[i, :] = self._mob_spawn_range_spaces[
+                            m[i]
+                        ].sample()[0, :]
+            if mobs_rel_positions is not None:
+                obs, _, _, info = self.env.spawn_mobs(
+                    self._initial_mobs, mobs_rel_positions
+                )
         if m is not None:
             info["spawn_item_perm"] = m
         return obs, info
